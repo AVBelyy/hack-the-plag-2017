@@ -193,14 +193,15 @@ if __name__ == "__main__":
     pointing to the pairs file and the paths pointing to the directories where
     the actual source and suspicious documents are located.
     """
-    if len(sys.argv) == 5:
+    if len(sys.argv) == 6:
         pairs = sys.argv[1]
         srcdir = sys.argv[2]
         suspdir = sys.argv[3]
         outdir = sys.argv[4]
+        detdir = sys.argv[5]
         if outdir[-1] != "/":
             outdir+="/"
-        detections = pickle.load(open("detections.dump", "rb"))
+        detections = pickle.load(open(detdir, "rb"))
         lines = open(pairs, 'r').readlines()
         for detection, line in zip(detections, lines):
             susp, src = line.split()

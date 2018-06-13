@@ -30,11 +30,11 @@ attribute, and with values corresponding to those required by the
 Annotation class, e.g., the XML format used in the PAN benchmarking
 workshops [2,3].
 
-[1]  Martin Potthast, Benno Stein, Alberto Barron-Cedeno, and Paolo Rosso. 
+[1]  Martin Potthast, Benno Stein, Alberto Barron-Cedeno, and Paolo Rosso.
      An Evaluation Framework for Plagiarism Detection.
      In Proceedings of the 23rd International Conference on Computational
      Linguistics (COLING 2010), Beijing, China. August 2010. ACL.
-     
+
 [2]  Martin Potthast, Benno Stein, Andreas Eiselt, Alberto Barron-Cedeno,
      and Paolo Rosso. Overview of the 1st International Competition on
      Plagiarism Detection. In Benno Stein, Paolo Rosso, Efstathios
@@ -133,14 +133,14 @@ def plagdet_score(rec, prec, gran):
     return ((2 * rec * prec) / (rec + prec)) / math.log(1 + gran, 2)
 
 
-def macro_avg_recall(cases, detections):
+def macro_avg_recall(cases, detections, debug=False):
     """Recall of the detections in detecting plagiarism cases."""
     if len(cases) == 0 and len(detections) == 0:
         return 1
     elif len(cases) == 0 or len(detections) == 0:
         return 0
     num_cases, recall_per_case = len(cases), list()
-    case_index = index_annotations(cases) 
+    case_index = index_annotations(cases)
     det_index = index_annotations(detections)
     for tref in case_index:
         cases, detections = case_index[tref], det_index.get(tref, False)
@@ -148,14 +148,20 @@ def macro_avg_recall(cases, detections):
             continue
         for case in cases:
             recall_per_case.append(case_recall(case, detections))
-    return sum(recall_per_case) / num_cases
+    if debug:
+        return sum(recall_per_case) / num_cases, recall_per_case
+    else:
+        return sum(recall_per_case) / num_cases
 
 
 def case_recall(case, detections):
     """Recall of the detections in detecting the plagiarism case."""
     num_detected_plagiarized = overlapping_chars(case, detections)
     num_plagiarized = case[TLEN] + case[SLEN]
-    return num_detected_plagiarized / num_plagiarized
+    if num_plagiarized == 0:
+        return 1
+    else:
+        return num_detected_plagiarized / num_plagiarized
 
 
 def macro_avg_precision(cases, detections):
@@ -277,7 +283,7 @@ def extract_annotations_from_files(path, tagname):
     """Returns a set of plagiarism annotations from XML files below path."""
     if not os.path.exists(path):
         print("Path not accessible:", path)
-        sys.exit(2) 
+        sys.exit(2)
     annotations = set()
     xmlfiles = glob.glob(os.path.join(path, '*.xml'))
     xmlfiles.extend(glob.glob(os.path.join(path, os.path.join('*', '*.xml'))))
@@ -323,7 +329,7 @@ def extract_annotation_from_node(xmlnode, t_ref):
 
 class TestPerfMeasures(unittest.TestCase):
     """Unit tests for the plagiarism detection performance measures."""
-    
+
     ann1 = Annotation('tref1', 0, 100, 'sref1', 0, 100, True)
     ann2 = Annotation('tref1', 0, 100, '', 0, 0, False)
     ann3 = Annotation('tref1', 100, 100, 'sref1', 100, 100, True)
@@ -334,7 +340,7 @@ class TestPerfMeasures(unittest.TestCase):
     ann8 = Annotation('tref2', 0, 100, '', 0, 0, False)
     ann9 = Annotation('tref2', 50, 100, 'sref2', 50, 100, True)
     ann10 = Annotation('tref2', 25, 75, 'sref2', 25, 75, True)
-    
+
     def test_macro_averaged_recall(self):
         self.assertEqual(1, macro_avg_recall([], []))
         self.assertEqual(0, macro_avg_recall(['sth'], []))
@@ -347,7 +353,7 @@ class TestPerfMeasures(unittest.TestCase):
                                                [self.ann2]))
         self.assertEqual(0, macro_avg_recall([self.ann1], [self.ann7]))
         self.assertEqual(0, macro_avg_recall([self.ann2], [self.ann8]))
-    
+
     def test_case_recall(self):
         self.assertEqual(0, case_recall(self.ann1, []))
         self.assertEqual(1, case_recall(self.ann1, [self.ann1]))
@@ -359,7 +365,7 @@ class TestPerfMeasures(unittest.TestCase):
         self.assertEqual(0.5, case_recall(self.ann7, [self.ann9]))
         self.assertEqual(0.75, case_recall(self.ann7, [self.ann10]))
         self.assertEqual(0.75, case_recall(self.ann7, [self.ann9, self.ann10]))
-    
+
     def test_macro_averaged_precision(self):
         self.assertEqual(1, macro_avg_precision([], []))
         self.assertEqual(0, macro_avg_precision(['sth'], []))
@@ -377,16 +383,16 @@ class TestPerfMeasures(unittest.TestCase):
                                                    [self.ann9, self.ann10]))
         self.assertEqual(0.25, macro_avg_precision([self.ann1], \
                                                    [self.ann3, self.ann4]))
-    
+
     def test_granularity(self):
         self.assertEqual(1, granularity([], []))
         self.assertEqual(1, granularity([self.ann1], [self.ann2]))
         self.assertEqual(1, granularity([self.ann1], [self.ann2, self.ann3]))
-        self.assertEqual(2, granularity([self.ann1], 
+        self.assertEqual(2, granularity([self.ann1],
                                         [self.ann2, self.ann3, self.ann4]))
         self.assertEqual(1.5, granularity([self.ann1, self.ann3],
                                           [self.ann2, self.ann4]))
-    
+
     def test_plagdet_score(self):
         self.assertEqual(0, plagdet_score(-1, 0, 0))
         self.assertEqual(0, plagdet_score(0, -1, 0))
@@ -410,7 +416,7 @@ class TestPerfMeasures(unittest.TestCase):
         self.assertFalse(is_overlapping(self.ann1, self.ann10))
         self.assertTrue(is_overlapping(self.ann1, self.ann5))
         self.assertTrue(is_overlapping(self.ann1, self.ann6))
-    
+
     def test_index_annotations(self):
         index = index_annotations([self.ann1, self.ann7, self.ann2, self.ann8])
         self.assertEqual([self.ann1, self.ann2], index.get('tref1'))
@@ -474,7 +480,7 @@ def parse_options():
 
 
 def main(micro_averaged, plag_path, plag_tag_name, det_path, det_tag_name):
-    """Main method of this module."""        
+    """Main method of this module."""
     print('Reading', plag_path)
     cases = extract_annotations_from_files(plag_path, plag_tag_name)
     print('Reading', det_path)
@@ -488,11 +494,11 @@ def main(micro_averaged, plag_path, plag_tag_name, det_path, det_tag_name):
     gran = granularity(cases, detections)
     print('Plagdet Score', plagdet_score(rec, prec, gran))
     print('Recall', rec)
-    print('Precision', prec) 
+    print('Precision', prec)
     print('Granularity', gran)
 
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
     main(*parse_options())
 
 

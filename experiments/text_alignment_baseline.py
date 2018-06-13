@@ -55,7 +55,7 @@ def tokenize(text, length):
 
 def serialize_features(susp, src, features, outdir):
     """ Serialze a feature list into a xml file.
-    The xml is structured as described in the readme file of the 
+    The xml is structured as described in the readme file of the
     PAN plagiarism corpus 2012. The filename will follow the naming scheme
     {susp}-{src}.xml and is located in the current directory.
     Existing files will be overwritten.
@@ -115,7 +115,6 @@ class Baseline:
         #    ...
         self.preprocess()
         self.detections = [] #self.compare()
-        print(self.tokens)
         self.postprocess()
 
     def preprocess(self):
@@ -175,8 +174,6 @@ class Baseline:
                             break
                     else:
                         token = token[1:]
-
-        print(len(detections))
 
         return detections
 
